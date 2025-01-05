@@ -1,32 +1,44 @@
-import NavBar from './NavBar'
 import logger from '../lib/logger'
 import Tool from './Tool'
 import Settings from '../Settings/Settings'
-import {
-  Emitter,
-  isMobile,
-  defaults,
-  keys,
-  last,
-  each,
-  isNum,
-  $,
-  throttle,
-  isDarkMode,
-  extend,
-} from '../lib/util'
+import Emitter from 'licia/Emitter'
+import defaults from 'licia/defaults'
+import keys from 'licia/keys'
+import last from 'licia/last'
+import each from 'licia/each'
+import isNum from 'licia/isNum'
+import nextTick from 'licia/nextTick'
+import $ from 'licia/$'
+import toNum from 'licia/toNum'
+import extend from 'licia/extend'
+import isStr from 'licia/isStr'
+import theme from 'licia/theme'
+import upperFirst from 'licia/upperFirst'
+import startWith from 'licia/startWith'
+import ready from 'licia/ready'
+import pointerEvent from 'licia/pointerEvent'
 import evalCss from '../lib/evalCss'
+import emitter from '../lib/emitter'
+import { isDarkTheme } from '../lib/themes'
 import LunaNotification from 'luna-notification'
+import LunaModal from 'luna-modal'
+import LunaTab from 'luna-tab'
+import {
+  classPrefix as c,
+  eventClient,
+  hasSafeArea,
+  safeStorage,
+} from '../lib/util'
 
 export default class DevTools extends Emitter {
-  constructor($container, { defaults = {} } = {}) {
+  constructor($container, { defaults = {}, inline = false } = {}) {
     super()
 
     this._defCfg = extend(
       {
         transparency: 1,
         displaySize: 80,
-        theme: isDarkMode() ? 'Dark' : 'Light',
+        theme: 'System preference',
       },
       defaults
     )
@@ -41,17 +53,21 @@ export default class DevTools extends Emitter {
     this._resizeTimer = null
     this._resizeStartY = 0
     this._resizeStartSize = 0
+    this._inline = inline
 
-    this._appendTpl()
-    this._initNavBar()
+    this._initTpl()
+    this._initTab()
     this._initNotification()
+    this._initModal()
+
+    ready(() => this._checkSafeArea())
     this._bindEvent()
   }
   show() {
     this._isShow = true
 
     this._$el.show()
-    this._navBar.resetBottomBar()
+    this._tab.updateSlider()
 
     // Need a delay after show to enable transition effect.
     setTimeout(() => {
@@ -63,6 +79,10 @@ export default class DevTools extends Emitter {
     return this
   }
   hide() {
+    if (this._inline) {
+      return
+    }
+
     this._isShow = false
     this.emit('hide')
 
@@ -75,24 +95,39 @@ export default class DevTools extends Emitter {
     return this._isShow ? this.hide() : this.show()
   }
   add(tool) {
+    const tab = this._tab
+
     if (!(tool instanceof Tool)) {
       const { init, show, hide, destroy } = new Tool()
       defaults(tool, { init, show, hide, destroy })
     }
 
-    let name = tool.name
-    if (!name) return logger.error('You must specify a name for a tool')
-    name = name.toLowerCase()
-    if (this._tools[name]) return logger.warn(`Tool ${name} already exists`)
+    const name = tool.name
+    if (!name) {
+      return logger.error('You must specify a name for a tool')
+    }
 
-    this._$tools.prepend(
-      `<div id="eruda-${name}" class="eruda-${name} eruda-tool"></div>`
-    )
-    tool.init(this._$tools.find(`.eruda-${name}.eruda-tool`), this)
+    if (this._tools[name]) {
+      return logger.warn(`Tool ${name} already exists`)
+    }
+
+    const id = name.replace(/\s+/g, '-')
+    this._$tools.prepend(`<div id="${c(id)}" class="${c(id + ' tool')}"></div>`)
+    tool.init(this._$tools.find(`.${c(id)}.${c('tool')}`), this)
     tool.active = false
     this._tools[name] = tool
 
-    this._navBar.add(name)
+    if (name === 'settings') {
+      tab.append({
+        id: name,
+        title: name,
+      })
+    } else {
+      tab.insert(tab.length - 1, {
+        id: name,
+        title: name,
+      })
+    }
 
     return this
   }
@@ -101,7 +136,7 @@ export default class DevTools extends Emitter {
 
     if (!tools[name]) return logger.warn(`Tool ${name} doesn't exist`)
 
-    this._navBar.remove(name)
+    this._tab.remove(name)
 
     const tool = tools[name]
     delete tools[name]
@@ -124,7 +159,9 @@ export default class DevTools extends Emitter {
     if (tool) return tool
   }
   showTool(name) {
-    if (this._curTool === name) return this
+    if (this._curTool === name) {
+      return this
+    }
     this._curTool = name
 
     const tools = this._tools
@@ -145,7 +182,7 @@ export default class DevTools extends Emitter {
     tool.active = true
     tool.show()
 
-    this._navBar.activateTool(name)
+    this._tab.select(name)
 
     this.emit('showTool', name, lastTool)
 
@@ -156,7 +193,7 @@ export default class DevTools extends Emitter {
 
     this._setTransparency(cfg.get('transparency'))
     this._setDisplaySize(cfg.get('displaySize'))
-    evalCss.setTheme(cfg.get('theme'))
+    this._setTheme(cfg.get('theme'))
 
     cfg.on('change', (key, val) => {
       switch (key) {
@@ -165,22 +202,47 @@ export default class DevTools extends Emitter {
         case 'displaySize':
           return this._setDisplaySize(val)
         case 'theme':
-          return evalCss.setTheme(val)
+          return this._setTheme(val)
       }
     })
 
     settings
       .separator()
-      .select(cfg, 'theme', 'Theme', keys(evalCss.getThemes()))
-      .range(cfg, 'transparency', 'Transparency', {
-        min: 0.2,
-        max: 1,
-        step: 0.01,
-      })
-      .range(cfg, 'displaySize', 'Display Size', {
-        min: 40,
-        max: 100,
-        step: 1,
+      .select(cfg, 'theme', 'Theme', [
+        'System preference',
+        ...keys(evalCss.getThemes()),
+      ])
+
+    if (!this._inline) {
+      settings
+        .range(cfg, 'transparency', 'Transparency', {
+          min: 0.2,
+          max: 1,
+          step: 0.01,
+        })
+        .range(cfg, 'displaySize', 'Display Size', {
+          min: 40,
+          max: 100,
+          step: 1,
+        })
+    }
+
+    settings
+      .button('Restore defaults and reload', function () {
+        const store = safeStorage('local')
+
+        const data = JSON.parse(JSON.stringify(store))
+        each(data, (val, key) => {
+          if (!isStr(val)) {
+            return
+          }
+
+          if (startWith(key, 'eruda')) {
+            store.removeItem(key)
+          }
+        })
+
+        window.location.reload()
       })
       .separator()
   }
@@ -190,8 +252,33 @@ export default class DevTools extends Emitter {
   destroy() {
     evalCss.remove(this._style)
     this.removeAll()
-    this._navBar.destroy()
+    this._tab.destroy()
     this._$el.remove()
+    window.removeEventListener('resize', this._checkSafeArea)
+    emitter.off(emitter.SCALE, this._updateTabHeight)
+  }
+  _checkSafeArea = () => {
+    const { $container } = this
+
+    if (hasSafeArea()) {
+      $container.addClass(c('safe-area'))
+    } else {
+      $container.rmClass(c('safe-area'))
+    }
+  }
+  _setTheme(t) {
+    const { $container } = this
+
+    if (t === 'System preference') {
+      t = upperFirst(theme.get())
+    }
+
+    if (isDarkTheme(t)) {
+      $container.addClass(c('dark'))
+    } else {
+      $container.rmClass(c('dark'))
+    }
+    evalCss.setTheme(t)
   }
   _setTransparency(opacity) {
     if (!isNum(opacity)) return
@@ -200,87 +287,122 @@ export default class DevTools extends Emitter {
     if (this._isShow) this._$el.css({ opacity })
   }
   _setDisplaySize(height) {
+    if (this._inline) {
+      height = 100
+    }
+
     if (!isNum(height)) return
 
     this._$el.css({ height: height + '%' })
   }
-  _appendTpl() {
+  _initTpl() {
     const $container = this.$container
 
-    $container.append(require('./DevTools.hbs')())
+    $container.append(
+      c(`
+      <div class="dev-tools">
+        <div class="resizer"></div>
+        <div class="tab"></div>
+        <div class="tools"></div>
+        <div class="notification"></div>
+        <div class="modal"></div>
+      </div>
+      `)
+    )
 
-    this._$el = $container.find('.eruda-dev-tools')
-    this._$tools = this._$el.find('.eruda-tools')
+    this._$el = $container.find(c('.dev-tools'))
+    this._$tools = this._$el.find(c('.tools'))
   }
-  _initNavBar() {
-    this._navBar = new NavBar(this._$el.find('.eruda-nav-bar-container'))
-    this._navBar.on('showTool', (name) => this.showTool(name))
+  _initTab() {
+    this._tab = new LunaTab(this._$el.find(c('.tab')).get(0), {
+      height: 40,
+    })
+    this._tab.on('select', (id) => this.showTool(id))
   }
-  _initNotification() {
-    this._notification = new LunaNotification(this._$el.get(0), {
-      position: {
-        x: 'center',
-        y: 'top',
-      },
+  _updateTabHeight = (scale) => {
+    this._tab.setOption('height', 40 * scale)
+    nextTick(() => {
+      this._tab.updateSlider()
     })
   }
-  _bindEvent() {
-    const $navBar = this._$el.find('.eruda-nav-bar')
-    const startListener = (e) => {
-      e = e.origEvent
-      this._resizeTimer = setTimeout(() => {
-        e.preventDefault()
-        e.stopPropagation()
-        this._isResizing = true
-        this._resizeStartSize = this.config.get('displaySize')
-        this._resizeStartY = getClientY(e)
-        $navBar.css('filter', 'brightness(1.2)')
-      }, 1000)
-    }
-    const setDisplaySize = throttle(
-      (size) => this.config.set('displaySize', size),
-      50
+  _initNotification() {
+    this._notification = new LunaNotification(
+      this._$el.find(c('.notification')).get(0),
+      {
+        position: {
+          x: 'center',
+          y: 'top',
+        },
+      }
     )
+  }
+  _initModal() {
+    LunaModal.setContainer(this._$el.find(c('.modal')).get(0))
+  }
+  _bindEvent() {
+    const $resizer = this._$el.find(c('.resizer'))
+    const $navBar = this._$el.find(c('.nav-bar'))
+    const $document = $(document)
+
+    if (this._inline) {
+      $resizer.hide()
+    }
+
+    const startListener = (e) => {
+      e.preventDefault()
+      e.stopPropagation()
+
+      e = e.origEvent
+      this._isResizing = true
+      this._resizeStartSize = this.config.get('displaySize')
+      this._resizeStartY = eventClient('y', e)
+
+      $resizer.css('height', '100%')
+
+      $document.on(pointerEvent('move'), moveListener)
+      $document.on(pointerEvent('up'), endListener)
+    }
     const moveListener = (e) => {
       if (!this._isResizing) {
-        return clearTimeout(this._resizeTimer)
+        return
       }
       e.preventDefault()
       e.stopPropagation()
 
       e = e.origEvent
-      const deltaY = Math.round(
-        ((this._resizeStartY - getClientY(e)) / window.innerHeight) * 100
-      )
+      const deltaY =
+        ((this._resizeStartY - eventClient('y', e)) / window.innerHeight) * 100
       let displaySize = this._resizeStartSize + deltaY
       if (displaySize < 40) {
         displaySize = 40
       } else if (displaySize > 100) {
         displaySize = 100
       }
-      setDisplaySize(displaySize)
+      this.config.set('displaySize', toNum(displaySize.toFixed(2)))
     }
     const endListener = () => {
       clearTimeout(this._resizeTimer)
       this._isResizing = false
-      $navBar.css('filter', 'brightness(1)')
-    }
-    const getClientY = (e) => {
-      if (e.clientY) return e.clientY
 
-      if (e.touches) return e.touches[0].clientY
+      $resizer.css('height', 10)
 
-      return 0
+      $document.off(pointerEvent('move'), moveListener)
+      $document.off(pointerEvent('up'), endListener)
     }
+    $resizer.css('height', 10)
+    $resizer.on(pointerEvent('down'), startListener)
+
     $navBar.on('contextmenu', (e) => e.preventDefault())
-    const $root = $(document.documentElement)
-    if (isMobile()) {
-      $navBar.on('touchstart', startListener).on('touchmove', moveListener)
-      $root.on('touchend', endListener)
-    } else {
-      $navBar.on('mousedown', startListener)
-      $root.on('mousemove', moveListener)
-      $root.on('mouseup', endListener)
-    }
+    this.$container.on('click', (e) => e.stopPropagation())
+    window.addEventListener('resize', this._checkSafeArea)
+
+    emitter.on(emitter.SCALE, this._updateTabHeight)
+
+    theme.on('change', () => {
+      const t = this.config.get('theme')
+      if (t === 'System preference') {
+        this._setTheme(t)
+      }
+    })
   }
 }

@@ -1,3 +1,170 @@
+## 3.4.1 (10 Nov 2024)
+
+* fix: no copy and delete for shadow root
+* fix: fetch remains pending when error occurs
+* fix: theme not updated if system theme changed
+
+## 3.4.0 (27 Sep 2024)
+
+* feat: support shadow dom [#158](https://github.com/liriliri/eruda/issues/158)
+* fix: quirks mode table rendering [#459](https://github.com/liriliri/eruda/issues/459)
+
+## 3.3.0 (9 Sep 2024)
+
+* feat: add vue devtools plugin
+
+## 3.2.3 (10 AUG 2024)
+
+* fix: WebSocket message base64 encoded [#447](https://github.com/liriliri/eruda/issues/447)
+
+## 3.2.2 (8 AUG 2024)
+
+* chore: update plugin versions
+
+## 3.2.1 (20 JUL 2024)
+
+* fix: touches plugin [#344](https://github.com/liriliri/eruda/issues/344)
+
+## 3.2.0 (16 JUL 2024)
+
+* feat: support inline mode
+* feat: allow spaces in plugin name
+* fix: some typescript d.ts mistakes
+* chore: remove elements set api
+* chore: update monitor plugin version
+
+## 3.1.0 (9 JUL 2024)
+
+* feat: add AMOLED theme [#414](https://github.com/liriliri/eruda/pull/414)
+* feat: support system preference theme config
+* feat: add isDarkTheme, getTheme util
+* fix: backers.svg lazy loading [#407](https://github.com/liriliri/eruda/issues/407)
+
+## 3.0.1 (18 JUL 2023)
+
+* fix: can not print string with %o [#336](https://github.com/liriliri/eruda/issues/336)
+* fix: mouse event on touch device [#302](https://github.com/liriliri/eruda/issues/302)
+* fix: unable to remove snippets [#349](https://github.com/liriliri/eruda/issues/349)
+
+## 3.0.0 (2 Apr 2023)
+
+* feat: replace fps and memory with monitor plugin
+* fix: resource stylesheet show failed
+* chore: remove licia utils
+* chore: separate polyfill
+
+## 2.11.3 (3 Mar 2023)
+
+* fix: scale [#307](https://github.com/liriliri/eruda/issues/307)
+
+## 2.11.2 (28 Jan 2023)
+
+* fix: check safe area error
+
+## 2.11.1 (28 Jan 2023)
+
+* fix: bottom safe area
+* fix(console): filter function support
+* fix: click event stop propagation [#155](https://github.com/liriliri/eruda/issues/155)
+* fix: worker null error [#152](https://github.com/liriliri/eruda/issues/152)
+
+## 2.11.0 (19 Jan 2023)
+
+* feat(network): filter
+* feat(info): add backers
+* feat(settings): use luna setting
+* feat(resources): use luna data grid
+* feat(resources): copy storage, cookie
+* fix(sources): code not selectable
+* fix(console): filter api
+
+## 2.10.0 (24 Dec 2022)
+
+* feat(sources): use luna text viewer
+* feat(elements): split mode
+* feat(network): split mode
+* fix(resources): delete cookie
+
+## 2.9.1 (20 Dec 2022)
+
+* fix(elements): select element using touch events
+
+## 2.9.0 (20 Dec 2022)
+
+* feat(elements): integrate dom viewer
+* feat(elements): element crumbs
+* feat(elements): copy node and delete node
+* feat(network): copy response
+* feat(network): toggle recording
+* chore: remove dom plugin snippet
+
+## 2.8.3 (13 Dec 2022)
+
+* fix(network): remove data grid ios outline
+* chore: update luna console and luna object viewer 
+
+## 2.8.2 (12 Dec 2022)
+
+* fix: some variables not reset when destroy
+
+## 2.8.1 (12 Dec 2022)
+
+* fix: remove luna syntax highlighter
+
+## 2.8.0 (11 Dec 2022)
+
+* feat(info): copy
+* feat(sources): use luna syntax highlighter
+* feat(network): use luna data grid
+* feat(network): copy as curl [#220](https://github.com/liriliri/eruda/issues/220)
+* fix(network): recognize JSON [#201](https://github.com/liriliri/eruda/issues/201)
+* fix: init with shadow dom style error [#195](https://github.com/liriliri/eruda/issues/195)
+
+## 2.7.4 (10 Dec 2022)
+
+* fix: firefox document.body is null error [#293](https://github.com/liriliri/eruda/issues/293)
+
+## 2.7.3 (8 Dec 2022)
+
+* fix: remove tabs horizontal scrollbar [#236](https://github.com/liriliri/eruda/issues/236)
+
+## 2.7.2 (7 Dec 2022)
+
+* fix: luna modal style
+
+## 2.7.1 (7 Dec 2022)
+
+* fix: remove debug log
+
+## 2.7.0 (7 Dec 2022)
+
+* feat: drag to resize
+* feat: update icons
+* feat: use luna modal to replace browser prompt
+
+## 2.6.2 (3 Dec 2022)
+
+* feat: support android 5.0
+* feat(sources): remove code beautify
+* fix: code plugin theme
+
+## 2.6.1 (26 Nov 2022)
+
+* fix: dark mode scrollbar style
+* fix: unable to load timing plugin
+
+## 2.6.0 (25 Nov 2022)
+
+* feat(console): select and copy
+* chore: update luna console
+* chore: update chobitsu
+
+## 2.5.0 (9 Jul 2022)
+
+* feat: add ts declaration [#187](https://github.com/liriliri/eruda/pull/187)
+* refactor: use luna console
+* refactor: use chobitsu for highlighting element
+
 ## 2.4.1 (28 Sep 2020)
 
 * fix: remove arrow function [#160](https://github.com/liriliri/eruda/issues/160)

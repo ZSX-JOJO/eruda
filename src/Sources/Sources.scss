@@ -2,6 +2,7 @@
 @import '../style/mixin';
 
 #sources {
+  font-size: 0;
   @include overflow-auto(y);
   color: var(--foreground);
   .code-wrapper,
@@ -10,36 +11,32 @@
     width: 100%;
     min-height: 100%;
   }
-  .raw {
-    user-select: text;
-    padding: $padding;
-  }
+  .raw,
   .code {
-    font-size: $font-size-s;
-    .content * {
-      user-select: text;
+    height: 100%;
+    .keyword {
+      color: var(--keyword-color);
     }
-  }
-  pre.code {
-    padding: $padding;
-  }
-  table.code {
-    border-collapse: collapse;
-    .gutter {
-      background: var(--background);
-      color: var(--primary);
+    .comment {
+      color: var(--comment-color);
     }
-    .line-num {
-      border-right: 1px solid var(--border);
-      padding: 0 3px 0 5px;
-      text-align: right;
+    .number {
+      color: var(--number-color);
     }
-    .code-line {
-      padding: 0 4px;
-      white-space: pre;
+    .string {
+      color: var(--string-color);
+    }
+    .operator {
+      color: var(--operator-color);
+    }
+    &[data-type='html'] {
+      .keyword {
+        color: var(--tag-name-color);
+      }
     }
   }
   .image {
+    font-size: $font-size-s;
     .breadcrumb {
       @include breadcrumb();
     }

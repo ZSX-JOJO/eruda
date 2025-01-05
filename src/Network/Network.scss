@@ -2,89 +2,104 @@
 @import '../style/mixin';
 
 #network {
-  padding-top: 36px;
-  .title {
-    @include absolute(100%, 36px);
-    @include right-btn();
-    background: var(--darker-background);
-    padding: $padding;
-    color: var(--primary);
-    height: 36px;
-    border-bottom: 1px solid var(--border);
+  .network {
+    @include absolute();
+    padding-top: 39px;
   }
-  .requests {
-    @include overflow-auto(y);
-    height: 100%;
-    border-bottom: 1px solid var(--border);
-    margin-bottom: 10px;
-    li {
-      display: flex;
-      width: 100%;
-      cursor: pointer;
-      border-bottom: 1px solid var(--border);
-      height: 41px;
-      color: var(--foreground);
+  .control {
+    padding: 10px;
+    border-bottom: none;
+    @include control();
+    .title {
+      font-size: $font-size;
+    }
+    .icon-clear {
+      left: 23px;
+    }
+    .icon-eye {
+      right: 0;
+    }
+    .icon-copy {
+      right: 23px;
+    }
+    .icon-filter {
+      right: 46px;
+    }
+    .filter-text {
       white-space: nowrap;
-      &.error {
-        span {
-          color: var(--console-error-foreground);
-        }
-      }
-      span {
-        display: block;
-        line-height: 40px;
-        height: 40px;
-        padding: 0 5px;
-        font-size: $font-size-s;
-        vertical-align: top;
-        text-overflow: ellipsis;
-        overflow: hidden;
-      }
-      .name {
-        flex: 1;
-        padding-left: $padding;
-      }
-      .status {
-        width: 40px;
-      }
-      .method,
-      .type {
-        width: 50px;
-      }
-      .size {
-        width: 70px;
-      }
-      .time {
-        width: 60px;
-        padding-right: $padding;
-      }
-      &:nth-child(even) {
-        background: var(--contrast);
+      position: absolute;
+      line-height: 20px;
+      max-width: 80px;
+      overflow: hidden;
+      right: 88px;
+      font-size: $font-size;
+      text-overflow: ellipsis;
+    }
+    .icon-record {
+      left: 0;
+      &.recording {
+        color: var(--console-error-foreground);
+        text-shadow: 0 0 4px var(--console-error-foreground);
       }
     }
+  }
+  .request-error {
+    color: var(--console-error-foreground);
+  }
+  .luna-data-grid:focus {
+    .luna-data-grid-data-container {
+      .request-error.luna-data-grid-selected {
+        background: var(--console-error-background);
+      }
+    }
+  }
+  .luna-data-grid {
+    border-left: none;
+    border-right: none;
   }
   .detail {
     @include absolute();
     z-index: 10;
     display: none;
-    padding-bottom: 40px;
+    padding-top: 40px;
     background: var(--background);
+    .control {
+      padding: 10px 35px;
+      border-bottom: 1px solid var(--border);
+      .url {
+        font-size: $font-size-s;
+        overflow: hidden;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+        width: 100%;
+        display: inline-block;
+      }
+      .icon-arrow-left {
+        left: 0;
+      }
+      .icon-delete {
+        left: 0;
+        display: none;
+      }
+      .icon-copy {
+        right: 0;
+      }
+    }
     .http {
       @include overflow-auto(y);
       height: 100%;
-      .breadcrumb {
-        @include breadcrumb();
-      }
       .section {
         border-top: 1px solid var(--border);
         border-bottom: 1px solid var(--border);
+        margin-top: 10px;
+        margin-bottom: 10px;
         h2 {
           background: var(--darker-background);
           color: var(--primary);
           padding: $padding;
+          line-height: 18px;
           font-size: $font-size;
         }
-        margin-bottom: 10px;
         table {
           color: var(--foreground);
           * {
@@ -108,31 +123,52 @@
         @include overflow-auto(x);
         padding: $padding;
         font-size: $font-size-s;
-        margin-bottom: 10px;
+        margin: 10px 0;
         white-space: pre-wrap;
         border-top: 1px solid var(--border);
         color: var(--foreground);
         border-bottom: 1px solid var(--border);
       }
     }
-    .back {
-      position: absolute;
-      left: 0;
-      bottom: 0;
-      color: var(--foreground);
-      width: 100%;
-      border-top: 1px solid var(--border);
-      background: var(--darker-background);
-      display: block;
-      height: 40px;
-      line-height: 40px;
-      text-decoration: none;
-      text-align: center;
-      margin-top: 10px;
-      transition: background 0.3s;
-      cursor: pointer;
-      &:active {
-        color: var(--select-foreground);
+  }
+}
+
+.safe-area #network {
+  .http {
+    @include safe-area(padding-bottom, 0px);
+  }
+}
+
+@media screen and (min-width: 680px) {
+  #network {
+    .network {
+      .control {
+        .icon-eye {
+          display: none;
+        }
+        .icon-copy {
+          right: 0;
+        }
+        .icon-filter {
+          right: 23px;
+        }
+        .filter-text {
+          right: 55px;
+        }
+      }
+    }
+    .detail {
+      width: 50%;
+      left: initial;
+      right: 0;
+      border-left: 1px solid var(--border);
+      .control {
+        .icon-arrow-left {
+          display: none;
+        }
+        .icon-delete {
+          display: block;
+        }
       }
     }
   }

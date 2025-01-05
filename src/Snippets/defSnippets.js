@@ -1,18 +1,14 @@
 import logger from '../lib/logger'
 import emitter from '../lib/emitter'
-import {
-  Url,
-  now,
-  each,
-  isStr,
-  startWith,
-  $,
-  upperFirst,
-  loadJs,
-  trim,
-} from '../lib/util'
-import { safeStorage } from '../lib/fione'
-import { isErudaEl } from '../lib/extraUtil'
+import Url from 'licia/Url'
+import now from 'licia/now'
+import startWith from 'licia/startWith'
+import $ from 'licia/$'
+import upperFirst from 'licia/upperFirst'
+import loadJs from 'licia/loadJs'
+import trim from 'licia/trim'
+import LunaModal from 'luna-modal'
+import { isErudaEl } from '../lib/util'
 import evalCss from '../lib/evalCss'
 
 let style = null
@@ -47,11 +43,13 @@ export default [
   {
     name: 'Search Text',
     fn() {
-      const keyword = prompt('Enter the text') || ''
+      LunaModal.prompt('Enter the text').then((keyword) => {
+        if (!keyword || trim(keyword) === '') {
+          return
+        }
 
-      if (trim(keyword) === '') return
-
-      search(keyword)
+        search(keyword)
+      })
     },
     desc: 'Highlight given text on page',
   },
@@ -96,11 +94,18 @@ export default [
     desc: 'Scale down the whole page to fit screen',
   },
   {
-    name: 'Load Fps Plugin',
+    name: 'Load Vue Plugin',
     fn() {
-      loadPlugin('fps')
+      loadPlugin('vue')
     },
-    desc: 'Display page fps',
+    desc: 'Vue devtools',
+  },
+  {
+    name: 'Load Monitor Plugin',
+    fn() {
+      loadPlugin('monitor')
+    },
+    desc: 'Display page fps, memory and dom nodes',
   },
   {
     name: 'Load Features Plugin',
@@ -115,13 +120,6 @@ export default [
       loadPlugin('timing')
     },
     desc: 'Show performance and resource timing',
-  },
-  {
-    name: 'Load Memory Plugin',
-    fn() {
-      loadPlugin('memory')
-    },
-    desc: 'Display memory',
   },
   {
     name: 'Load Code Plugin',
@@ -145,13 +143,6 @@ export default [
     desc: 'Test geolocation',
   },
   {
-    name: 'Load Dom Plugin',
-    fn() {
-      loadPlugin('dom')
-    },
-    desc: 'Navigate dom tree',
-  },
-  {
     name: 'Load Orientation Plugin',
     fn() {
       loadPlugin('orientation')
@@ -164,23 +155,6 @@ export default [
       loadPlugin('touches')
     },
     desc: 'Visualize screen touches',
-  },
-  {
-    name: 'Restore Settings',
-    fn() {
-      const store = safeStorage('local')
-
-      const data = JSON.parse(JSON.stringify(store))
-
-      each(data, (val, key) => {
-        if (!isStr(val)) return
-
-        if (startWith(key, 'eruda')) store.removeItem(key)
-      })
-
-      window.location.reload()
-    },
-    desc: 'Restore defaults and reload',
   },
 ]
 
@@ -250,14 +224,13 @@ function loadPlugin(name) {
 }
 
 const pluginVersion = {
-  fps: '2.0.0',
-  features: '2.0.0',
-  timing: '2.0.0',
-  memory: '2.0.0',
-  code: '2.0.0',
-  benchmark: '2.0.0',
-  geolocation: '2.0.0',
-  dom: '2.0.0',
-  orientation: '2.0.0',
-  touches: '2.0.0',
+  monitor: '1.1.1',
+  features: '2.1.0',
+  timing: '2.0.1',
+  code: '2.2.0',
+  benchmark: '2.0.1',
+  geolocation: '2.1.0',
+  orientation: '2.1.1',
+  touches: '2.1.0',
+  vue: '1.1.1',
 }

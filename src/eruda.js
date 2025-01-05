@@ -11,43 +11,82 @@ import Sources from './Sources/Sources'
 import Settings from './Settings/Settings'
 import emitter from './lib/emitter'
 import logger from './lib/logger'
-import extraUtil from './lib/extraUtil'
 import * as util from './lib/util'
-import {
-  isFn,
-  isNum,
-  isObj,
-  isMobile,
-  viewportScale,
-  detectBrowser,
-  $,
-  toArr,
-  upperFirst,
-  nextTick
-} from './lib/util'
+import { isDarkTheme } from './lib/themes'
+import themes from './lib/themes'
+import isFn from 'licia/isFn'
+import isNum from 'licia/isNum'
+import isObj from 'licia/isObj'
+import each from 'licia/each'
+import isMobile from 'licia/isMobile'
+import viewportScale from 'licia/viewportScale'
+import detectBrowser from 'licia/detectBrowser'
+import $ from 'licia/$'
+import toArr from 'licia/toArr'
+import upperFirst from 'licia/upperFirst'
+import nextTick from 'licia/nextTick'
+import isEqual from 'licia/isEqual'
+import extend from 'licia/extend'
 import evalCss from './lib/evalCss'
-import chobitsu from 'chobitsu'
+import chobitsu from './lib/chobitsu'
 
 export default {
-  init({ container, tool, autoScale = true, useShadowDom = true, defaults = {} } = {}) {
-    if (this._isInit) return
+  init({
+    container,
+    tool,
+    autoScale = true,
+    useShadowDom = true,
+    inline = false,
+    defaults = {},
+  } = {}) {
+    if (this._isInit) {
+      return
+    }
 
     this._isInit = true
     this._scale = 1
 
     this._initContainer(container, useShadowDom)
     this._initStyle()
-    this._initDevTools(defaults)
+    this._initDevTools(defaults, inline)
     this._initEntryBtn()
     this._initSettings()
     this._initTools(tool)
     this._registerListener()
 
-    if (autoScale) this._autoScale()
+    if (autoScale) {
+      this._autoScale()
+    }
+    if (inline) {
+      this._entryBtn.hide()
+      this._$el.addClass('eruda-inline')
+      this.show()
+    }
   },
   _isInit: false,
   version: VERSION,
-  util,
+  util: {
+    isErudaEl: util.isErudaEl,
+    evalCss,
+    isDarkTheme(theme) {
+      if (!theme) {
+        theme = this.getTheme()
+      }
+      return isDarkTheme(theme)
+    },
+    getTheme: () => {
+      const curTheme = evalCss.getCurTheme()
+
+      let result = 'Light'
+      each(themes, (theme, name) => {
+        if (isEqual(theme, curTheme)) {
+          result = name
+        }
+      })
+
+      return result
+    },
+  },
   chobitsu,
   Tool,
   Console,
@@ -103,9 +142,11 @@ export default {
     this._entryBtn.destroy()
     delete this._entryBtn
     this._unregisterListener()
-    this._$el.remove()
+    $(this._container).remove()
     evalCss.clear()
     this._isInit = false
+    this._container = null
+    this._shadowRoot = null
   },
   scale(s) {
     if (isNum(s)) {
@@ -148,25 +189,35 @@ export default {
     if (!this._isInit) logger.error('Please call "eruda.init()" first')
     return this._isInit
   },
-  _initContainer(el, useShadowDom) {
-    if (!el) {
-      el = document.createElement('div')
-      document.documentElement.appendChild(el)
-      el.style.all = 'initial'
+  _initContainer(container, useShadowDom) {
+    if (!container) {
+      container = document.createElement('div')
+      document.documentElement.appendChild(container)
     }
 
+    container.id = 'eruda'
+    container.style.all = 'initial'
+    this._container = container
+
     let shadowRoot
+    let el
     if (useShadowDom) {
-      if (el.attachShadow) {
-        shadowRoot = el.attachShadow({ mode: 'open' })
-      } else if (el.createShadowRoot) {
-        shadowRoot = el.createShadowRoot()
+      if (container.attachShadow) {
+        shadowRoot = container.attachShadow({ mode: 'open' })
+      } else if (container.createShadowRoot) {
+        shadowRoot = container.createShadowRoot()
       }
       if (shadowRoot) {
         // font-face doesn't work inside shadow dom.
         evalCss.container = document.head
-        evalCss(require('./style/icon.css') +
-        require('luna-console/luna-console.css') + require('luna-object-viewer/luna-object-viewer.css'))
+        evalCss(
+          require('./style/icon.css') +
+            require('luna-console/luna-console.css') +
+            require('luna-object-viewer/luna-object-viewer.css') +
+            require('luna-dom-viewer/luna-dom-viewer.css') +
+            require('luna-text-viewer/luna-text-viewer.css') +
+            require('luna-notification/luna-notification.css')
+        )
 
         el = document.createElement('div')
         shadowRoot.appendChild(el)
@@ -174,10 +225,14 @@ export default {
       }
     }
 
-    Object.assign(el, {
-      id: 'eruda',
-      className: 'eruda-container',
-      contentEditable: false
+    if (!this._shadowRoot) {
+      el = document.createElement('div')
+      container.appendChild(el)
+    }
+
+    extend(el, {
+      className: 'eruda-container __chobitsu-hide__',
+      contentEditable: false,
     })
 
     // http://stackoverflow.com/questions/3885018/active-pseudo-class-doesnt-work-in-mobile-safari
@@ -185,9 +240,10 @@ export default {
 
     this._$el = $(el)
   },
-  _initDevTools(defaults) {
+  _initDevTools(defaults, inline) {
     this._devTools = new DevTools(this._$el, {
-      defaults
+      defaults,
+      inline,
     })
   },
   _initStyle() {
@@ -203,11 +259,18 @@ export default {
     }
 
     evalCss(
-      require('luna-object-viewer/luna-object-viewer.css') +
-      require('luna-console/luna-console.css') +
-      require('luna-notification/luna-notification.css') + 
-      require('./style/style.scss') +
-        require('./style/reset.scss') +
+      require('./style/reset.scss') +
+        require('luna-object-viewer/luna-object-viewer.css') +
+        require('luna-console/luna-console.css') +
+        require('luna-notification/luna-notification.css') +
+        require('luna-data-grid/luna-data-grid.css') +
+        require('luna-dom-viewer/luna-dom-viewer.css') +
+        require('luna-modal/luna-modal.css') +
+        require('luna-tab/luna-tab.css') +
+        require('luna-text-viewer/luna-text-viewer.css') +
+        require('luna-setting/luna-setting.css') +
+        require('luna-box-model/luna-box-model.css') +
+        require('./style/style.scss') +
         require('./style/icon.css')
     )
   },
@@ -232,14 +295,14 @@ export default {
       'resources',
       'sources',
       'info',
-      'snippets'
+      'snippets',
     ]
   ) {
     tool = toArr(tool)
 
     const devTools = this._devTools
 
-    tool.forEach(name => {
+    tool.forEach((name) => {
       const Tool = this[upperFirst(name)]
       try {
         if (Tool) devTools.add(new Tool())
@@ -255,7 +318,5 @@ export default {
     })
 
     devTools.showTool(tool[0] || 'settings')
-  }
+  },
 }
-
-extraUtil(util)

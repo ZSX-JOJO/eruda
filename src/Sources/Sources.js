@@ -1,9 +1,16 @@
 import Tool from '../DevTools/Tool'
-import beautify from 'js-beautify'
 import LunaObjectViewer from 'luna-object-viewer'
 import Settings from '../Settings/Settings'
-import { ajax, escape, trim, isStr, highlight } from '../lib/util'
+import ajax from 'licia/ajax'
+import each from 'licia/each'
+import isStr from 'licia/isStr'
+import escape from 'licia/escape'
+import truncate from 'licia/truncate'
+import replaceAll from 'licia/replaceAll'
+import highlight from 'licia/highlight'
+import LunaTextViewer from 'luna-text-viewer'
 import evalCss from '../lib/evalCss'
+import { classPrefix as c } from '../lib/util'
 
 export default class Sources extends Tool {
   constructor() {
@@ -13,10 +20,6 @@ export default class Sources extends Tool {
 
     this.name = 'sources'
     this._showLineNum = true
-    this._formatCode = true
-    this._indentSize = 4
-
-    this._loadTpl()
   }
   init($el, container) {
     super.init($el)
@@ -107,13 +110,6 @@ export default class Sources extends Tool {
       }
     })
   }
-  _loadTpl() {
-    this._codeTpl = require('./code.hbs')
-    this._imgTpl = require('./image.hbs')
-    this._objTpl = require('./object.hbs')
-    this._rawTpl = require('./raw.hbs')
-    this._iframeTpl = require('./iframe.hbs')
-  }
   _rmCfg() {
     const cfg = this.config
 
@@ -121,33 +117,19 @@ export default class Sources extends Tool {
 
     if (!settings) return
 
-    settings
-      .remove(cfg, 'showLineNum')
-      .remove(cfg, 'formatCode')
-      .remove(cfg, 'indentSize')
-      .remove('Sources')
+    settings.remove(cfg, 'showLineNum').remove('Sources')
   }
   _initCfg() {
     const cfg = (this.config = Settings.createCfg('sources', {
       showLineNum: true,
-      formatCode: true,
-      indentSize: 4,
     }))
 
     if (!cfg.get('showLineNum')) this._showLineNum = false
-    if (!cfg.get('formatCode')) this._formatCode = false
-    this._indentSize = cfg.get('indentSize')
 
     cfg.on('change', (key, val) => {
       switch (key) {
         case 'showLineNum':
           this._showLineNum = val
-          return
-        case 'formatCode':
-          this._formatCode = val
-          return
-        case 'indentSize':
-          this._indentSize = +val
           return
       }
     })
@@ -156,8 +138,6 @@ export default class Sources extends Tool {
     settings
       .text('Sources')
       .switch(cfg, 'showLineNum', 'Show Line Numbers')
-      .switch(cfg, 'formatCode', 'Beautify Code')
-      .select(cfg, 'indentSize', 'Indent Size', ['2', '4'])
       .separator()
   }
   _render() {
@@ -181,62 +161,58 @@ export default class Sources extends Tool {
     }
   }
   _renderImg() {
-    this._renderHtml(this._imgTpl(this._data.val))
+    const { width, height, src } = this._data.val
+
+    this._renderHtml(`<div class="${c('image')}">
+      <div class="${c('breadcrumb')}">${escape(src)}</div>
+      <div class="${c('img-container')}" data-exclude="true">
+        <img src="${escape(src)}">
+      </div>
+      <div class="${c('img-info')}">${escape(width)} × ${escape(height)}</div>
+    </div>`)
   }
   _renderCode() {
     const data = this._data
-    const indent_size = this._indentSize
+
+    this._renderHtml(
+      `<div class="${c('code')}" data-type="${data.type}"></div>`,
+      false
+    )
 
     let code = data.val
     const len = data.val.length
 
-    // If source code too big, don't process it.
-    if (len < MAX_BEAUTIFY_LEN && this._formatCode) {
-      switch (data.type) {
-        case 'html':
-          code = beautify.html(code, { unformatted: [], indent_size })
-          break
-        case 'css':
-          code = beautify.css(code, { indent_size })
-          break
-        case 'js':
-          code = beautify(code, { indent_size })
-          break
-      }
+    if (len > MAX_RAW_LEN) {
+      code = truncate(code, MAX_RAW_LEN)
+    }
 
-      const curTheme = evalCss.getCurTheme()
+    // If source code too big, don't process it.
+    if (len < MAX_BEAUTIFY_LEN) {
       code = highlight(code, data.type, {
-        keyword: `color:${curTheme.keywordColor}`,
-        number: `color:${curTheme.numberColor}`,
-        operator: `color:${curTheme.operatorColor}`,
-        comment: `color:${curTheme.commentColor}`,
-        string: `color:${curTheme.stringColor}`,
+        comment: '',
+        string: '',
+        number: '',
+        keyword: '',
+        operator: '',
+      })
+      each(['comment', 'string', 'number', 'keyword', 'operator'], (type) => {
+        code = replaceAll(code, `class="${type}"`, `class="${c(type)}"`)
       })
     } else {
       code = escape(code)
     }
 
-    if (len < MAX_LINE_NUM_LEN && this._showLineNum) {
-      code = code.split('\n').map((line, idx) => {
-        if (trim(line) === '') line = '&nbsp;'
-
-        return {
-          idx: idx + 1,
-          val: line,
-        }
-      })
-    }
-
-    this._renderHtml(
-      this._codeTpl({
-        code,
-        showLineNum: len < MAX_LINE_NUM_LEN && this._showLineNum,
-      })
-    )
+    const container = this._$el.find(c('.code')).get(0)
+    new LunaTextViewer(container, {
+      text: code,
+      escape: false,
+      wrapLongLines: true,
+      showLineNumbers: data.val.length < MAX_LINE_NUM_LEN && this._showLineNum,
+    })
   }
   _renderObj() {
     // Using cache will keep binding events to the same elements.
-    this._renderHtml(this._objTpl(), false)
+    this._renderHtml(`<ul class="${c('json')}"></ul>`, false)
 
     let val = this._data.val
 
@@ -252,15 +228,32 @@ export default class Sources extends Tool {
       {
         unenumerable: true,
         accessGetter: true,
+        prototype: false,
       }
     )
     objViewer.set(val)
   }
   _renderRaw() {
-    this._renderHtml(this._rawTpl({ val: this._data.val }))
+    const data = this._data
+
+    this._renderHtml(`<div class="${c('raw-wrapper')}">
+      <div class="${c('raw')}"></div>
+    </div>`)
+
+    let val = data.val
+    const container = this._$el.find(c('.raw')).get(0)
+    if (val.length > MAX_RAW_LEN) {
+      val = truncate(val, MAX_RAW_LEN)
+    }
+
+    new LunaTextViewer(container, {
+      text: val,
+      wrapLongLines: true,
+      showLineNumbers: val.length < MAX_LINE_NUM_LEN && this._showLineNum,
+    })
   }
   _renderIframe() {
-    this._renderHtml(this._iframeTpl({ src: this._data.val }))
+    this._renderHtml(`<iframe src="${escape(this._data.val)}"></iframe>`)
   }
   _renderHtml(html, cache = true) {
     if (cache && html === this._lastHtml) return
@@ -271,5 +264,6 @@ export default class Sources extends Tool {
   }
 }
 
-const MAX_BEAUTIFY_LEN = 100000
-const MAX_LINE_NUM_LEN = 400000
+const MAX_BEAUTIFY_LEN = 30000
+const MAX_LINE_NUM_LEN = 80000
+const MAX_RAW_LEN = 100000

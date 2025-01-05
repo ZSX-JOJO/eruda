@@ -40,9 +40,6 @@
           <a href="#" id="override-style">Override Style</a>
         </li>
         <li>
-          <a href="#" id="stringify-timing">Stringify Timing</a>
-        </li>
-        <li>
           <a href="#" id="log">Log</a>
         </li>
         <li>
@@ -65,8 +62,8 @@
         )
       }
       addClickEvent('issue17', function () {
-        let B = function () {}
-        let A = function () {
+        var B = function () {}
+        var A = function () {
           this._data = 'eruda'
         }
         A.prototype = Object.create(B.prototype)
@@ -75,7 +72,7 @@
             return this._data
           },
         })
-        let a = new A()
+        var a = new A()
         console.log(a)
       })
       addClickEvent('plugin', function () {
@@ -89,10 +86,10 @@
             },
           }
         })
-        let Tool = eruda.Tool
+        var Tool = eruda.Tool
         eruda.add(
           new (Tool.extend({
-            name: 'test3',
+            name: 'test plugin',
             init: function ($el) {
               this.callSuper(Tool, 'init', arguments)
               this._$el.html('This is another new plugin')
@@ -104,7 +101,7 @@
         new Promise(function (resolve, reject) {
           resolve()
         }).then(function (res) {
-          let a = res.a
+          var a = res.a
         })
       })
       addClickEvent('issue31', function () {
@@ -117,8 +114,8 @@
         triggerError()
       })
       addClickEvent('big-array', function () {
-        let arr = []
-        for (let i = 0; i < 10000; i++) {
+        var arr = []
+        for (var i = 0; i < 10000; i++) {
           arr.push(i)
         }
         console.log(arr)
@@ -126,28 +123,35 @@
       addClickEvent('override-style', function () {
         util.evalCss('.eruda-nav-bar {background: red !important;}')
       })
-      addClickEvent('stringify-timing', function () {
-        console.time('stringify window')
-        eruda.util.stringifyAll(window)
-        console.timeEnd('stringify window')
-      })
-      addClickEvent('log', () => {
+      addClickEvent('log', function () {
         console.clear()
         console.log('log')
+        console.log('number:', 5)
+        console.log('boolean:', true, false)
+        console.log('null:', null)
+        console.log('undefined:', undefined)
+        console.log('regexp:', /test/gi)
+        for (var i = 0; i < 10; i++) {
+          console.log('repeat log')
+        }
         console.warn('warn')
         console.error(Error('test'))
         console.info('info')
         console.debug('debug')
-        console.dir(document.createElement('div'))
         console.time('test')
         console.timeEnd('test')
-        console.count('eruda')
-        console.count('eruda')
+        console.count('luna')
+        console.count('luna')
         console.assert(true, 'assert msg')
         var site1 = { name: 'Runoob', site: 'www.runoob.com' }
         var site2 = { name: 'Google', site: 'www.google.com' }
         var site3 = { name: 'Taobao', site: 'www.taobao.com' }
         console.table([site1, site2, site3], ['site'])
+        var el = util.toEl(
+          '<div class="test"><div class="test-inner"></div></div>'
+        )
+        console.log('test dom', el)
+        console.dir(el)
         console.log('%c Oh my heavens!', 'background: #222; color: #bada55')
         console.log('This is the outer level')
         console.group()
@@ -159,20 +163,23 @@
         console.log('Back to level 2')
         console.groupEnd()
         console.log('Back to the outer level')
-        console.log(navigator)
-        console.log(location)
-        console.log(performance)
+        console.log(
+          'navigator: %o location: %o performance: %o',
+          navigator,
+          location,
+          performance
+        )
         var arr = []
         for (var i = 0; i < 10000; i++) arr.push(i)
         console.log(arr)
       })
-      addClickEvent('log-10000', () => {
-        for (let i = 0; i < 10000; i++) {
+      addClickEvent('log-10000', function () {
+        for (var i = 0; i < 10000; i++) {
           console.log(location, i)
         }
       })
-      addClickEvent('log-1000', () => {
-        for (let i = 0; i < 1000; i++) {
+      addClickEvent('log-1000', function () {
+        for (var i = 0; i < 1000; i++) {
           console.log(location, i)
         }
       })

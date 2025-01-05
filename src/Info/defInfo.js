@@ -1,4 +1,6 @@
-import { detectBrowser, detectOs, escape } from '../lib/util'
+import detectBrowser from 'licia/detectBrowser'
+import detectOs from 'licia/detectOs'
+import escape from 'licia/escape'
 
 const browser = detectBrowser()
 
@@ -37,8 +39,19 @@ export default [
   {
     name: 'About',
     val:
-      '<a href="https://github.com/liriliri/eruda" target="_blank">Eruda v' +
+      '<a href="https://eruda.liriliri.io" target="_blank">Eruda v' +
       VERSION +
       '</a>',
+  },
+  {
+    name: 'Backers',
+    val() {
+      return `
+        <a rel="noreferrer noopener" href="https://opencollective.com/eruda" target="_blank">
+          <img data-exclude="true" style="width: 100%;" loading="lazy" src="https://opencollective.com/eruda/backers.svg?width=${
+            window.innerWidth * 1.5
+          }&exclude=true">
+        </a>`
+    },
   },
 ]

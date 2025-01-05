@@ -2,93 +2,104 @@
 @import '../style/mixin';
 
 #elements {
-  padding-bottom: 40px;
-  font-size: 14px;
-  .show-area {
+  .elements {
+    @include absolute();
+    padding-top: 40px;
+    padding-bottom: 24px;
+    font-size: 14px;
+  }
+  .control {
+    padding: 10px 0;
+    @include control();
+    .icon-eye {
+      right: 0;
+    }
+    .icon-copy {
+      right: 23px;
+    }
+    .icon-delete {
+      right: 46px;
+    }
+  }
+  .dom-viewer-container {
     @include overflow-auto(y);
     height: 100%;
+    padding: 5px 0;
   }
-  .parents {
-    @include overflow-auto(x);
+  .crumbs {
+    @include absolute(100%, 24px);
+    top: initial;
+    line-height: 24px;
+    bottom: 0;
+    border-top: 1px solid var(--border);
     background: var(--darker-background);
     color: var(--primary);
-    padding: $padding;
-    white-space: nowrap;
-    border-bottom: 1px solid var(--border);
-    cursor: pointer;
     font-size: $font-size-s;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
     li {
+      cursor: pointer;
+      padding: 0 7px;
       display: inline-block;
-      .parent {
-        display: inline-block;
-      }
+      &:hover,
       &:last-child {
-        margin-right: 0;
+        background: var(--highlight);
       }
     }
     .icon-arrow-right {
-      font-size: 8px;
+      font-size: $font-size-s;
       position: relative;
-      top: -1px;
+      top: 1px;
     }
   }
-  .breadcrumb {
-    @include breadcrumb();
-    cursor: pointer;
-    transition: background $anim-duration, color $anim-duration;
-    &:active {
-      background: var(--highlight);
-      color: var(--select-foreground);
-      span {
-        color: var(--select-foreground);
+  .detail {
+    @include absolute();
+    z-index: 10;
+    padding-top: 40px;
+    display: none;
+    background: var(--background);
+    .control {
+      padding: 10px 35px;
+      .element-name {
+        font-size: $font-size-s;
+        overflow: hidden;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+        width: 100%;
+        display: inline-block;
       }
+      .icon-arrow-left {
+        left: 0;
+      }
+      .icon-refresh {
+        right: 0;
+      }
+    }
+    .element {
+      @include overflow-auto(y);
+      height: 100%;
     }
   }
   .section {
     border-bottom: 1px solid var(--border);
     color: var(--foreground);
+    margin: 10px 0;
     h2 {
-      @include right-btn();
       color: var(--primary);
       background: var(--darker-background);
       border-top: 1px solid var(--border);
       padding: $padding;
+      line-height: 18px;
       font-size: $font-size;
-      transition: background $anim-duration;
+      transition: background-color $anim-duration;
+      @include right-btn();
       &.active-effect {
         cursor: pointer;
       }
       &.active-effect:active {
         background: var(--highlight);
         color: var(--select-foreground);
-      }
-    }
-    margin-bottom: 10px;
-  }
-  .children {
-    background: var(--darker-background);
-    color: var(--foreground);
-    margin-bottom: 10px !important;
-    border-bottom: 1px solid var(--border);
-    li {
-      @include overflow-auto(x);
-      cursor: default;
-      padding: $padding;
-      border-top: 1px solid var(--border);
-      white-space: nowrap;
-      transition: background $anim-duration, color $anim-duration;
-      span {
-        transition: color $anim-duration;
-      }
-      &.active-effect {
-        cursor: pointer;
-      }
-      &.active-effect:active {
-        background: var(--highlight);
-        color: var(--select-foreground);
-        span {
-          color: var(--select-foreground);
-        }
       }
     }
   }
@@ -125,60 +136,9 @@
   }
   .box-model {
     @include overflow-auto(x);
-    color: #222;
-    font-size: $font-size-s;
     padding: $padding;
     text-align: center;
-    white-space: nowrap;
     border-bottom: 1px solid var(--color);
-    .label {
-      position: absolute;
-      margin-left: 3px;
-      padding: 0 2px;
-    }
-    .top,
-    .left,
-    .right,
-    .bottom {
-      display: inline-block;
-    }
-    .left,
-    .right {
-      vertical-align: middle;
-    }
-    .position,
-    .margin,
-    .border,
-    .padding,
-    .content {
-      position: relative;
-      background: #fff;
-      display: inline-block;
-      text-align: center;
-      vertical-align: middle;
-      padding: 3px;
-      margin: 3px;
-    }
-    .position {
-      border: 1px grey dotted;
-    }
-    .margin {
-      border: 1px dashed;
-      background: rgba(246, 178, 107, 0.66);
-    }
-    .border {
-      border: 1px #000 solid;
-      background: rgba(255, 229, 153, 0.66);
-    }
-    .padding {
-      border: 1px grey dashed;
-      background: rgba(147, 196, 125, 0.55);
-    }
-    .content {
-      border: 1px grey solid;
-      min-width: 100px;
-      background: rgba(111, 168, 220, 0.66);
-    }
   }
   .computed-style {
     font-size: $font-size-s;
@@ -247,30 +207,46 @@
       }
     }
   }
-  .bottom-bar {
-    height: 40px;
-    background: var(--darker-background);
-    position: absolute;
-    left: 0;
-    bottom: 0;
-    width: 100%;
-    font-size: 0;
-    border-top: 1px solid var(--border);
-    .btn {
-      cursor: pointer;
-      text-align: center;
-      color: var(--primary);
-      font-size: 14px;
-      line-height: 40px;
-      width: 25%;
-      display: inline-block;
-      transition: background $anim-duration, color $anim-duration;
-      &:active {
-        background: var(--highlight);
-        color: var(--select-foreground);
+}
+
+.safe-area #elements {
+  .elements {
+    @include safe-area(padding-bottom, 24px);
+  }
+  .crumbs {
+    @include safe-area(height, 24px);
+  }
+  .element {
+    @include safe-area(padding-bottom, 0px);
+  }
+}
+
+@media screen and (min-width: 680px) {
+  #elements {
+    .elements {
+      width: 50%;
+      .control {
+        .icon-eye {
+          display: none;
+        }
+        .icon-copy {
+          right: 0;
+        }
+        .icon-delete {
+          right: 23px;
+        }
       }
-      &.active {
-        color: var(--accent);
+    }
+    .detail {
+      width: 50%;
+      left: initial;
+      right: 0;
+      border-left: 1px solid var(--border);
+      .control {
+        padding-left: 10px;
+        .icon-arrow-left {
+          display: none;
+        }
       }
     }
   }

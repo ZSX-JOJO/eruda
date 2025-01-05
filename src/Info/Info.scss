@@ -11,14 +11,26 @@
       padding: $padding;
     }
     .title {
+      position: relative;
       padding-bottom: 0;
-      font-size: $font-size-l;
       color: var(--accent);
+      .icon-copy {
+        position: absolute;
+        right: 10px;
+        top: 14px;
+        color: var(--primary);
+        cursor: pointer;
+        transition: color $anim-duration;
+        &:active {
+          color: var(--accent);
+        }
+      }
     }
     .content {
       margin: 0;
       user-select: text;
       color: var(--foreground);
+      font-size: $font-size-s;
       word-break: break-all;
       table {
         width: 100%;
@@ -41,4 +53,8 @@
       width: 100px;
     }
   }
+}
+
+.safe-area #info {
+  @include safe-area(padding-bottom, 10px);
 }

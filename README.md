@@ -1,6 +1,8 @@
-<a href="https://eruda.liriliri.io/" target="_blank">
-  <img src="https://eruda.liriliri.io/img/banner.jpg">
-</a>
+<div align="center">
+  <a href="https://eruda.liriliri.io/" target="_blank">
+    <img src="https://eruda.liriliri.io/icon.png" width="400">
+  </a>
+</div>
 
 <h1 align="center">Eruda</h1>
 
@@ -9,11 +11,10 @@
 Console for Mobile Browsers.
 
 [![NPM version][npm-image]][npm-url]
-[![Build status][travis-image]][travis-url]
+[![Build status][ci-image]][ci-url]
 [![Test coverage][codecov-image]][codecov-url]
 [![Downloads][jsdelivr-image]][jsdelivr-url]
 [![License][license-image]][npm-url]
-[![Donate][donate-image]][paypal-url]
 
 </div>
 
@@ -21,46 +22,27 @@ Console for Mobile Browsers.
 [npm-url]: https://npmjs.org/package/eruda
 [jsdelivr-image]: https://img.shields.io/jsdelivr/npm/hm/eruda?style=flat-square
 [jsdelivr-url]: https://www.jsdelivr.com/package/npm/eruda
-[travis-image]: https://img.shields.io/travis/com/liriliri/eruda?style=flat-square 
-[travis-url]: https://app.travis-ci.com/liriliri/eruda
+[ci-image]: https://img.shields.io/github/actions/workflow/status/liriliri/eruda/main.yml?branch=master&style=flat-square
+[ci-url]: https://github.com/liriliri/eruda/actions/workflows/main.yml 
 [codecov-image]: https://img.shields.io/codecov/c/github/liriliri/eruda?style=flat-square
 [codecov-url]: https://codecov.io/github/liriliri/eruda?branch=master
 [license-image]: https://img.shields.io/npm/l/eruda?style=flat-square
 [donate-image]: https://img.shields.io/badge/$-donate-0070ba.svg?style=flat-square
-[paypal-url]: https://www.paypal.com/paypalme/surunzi
 
-![Eruda](https://eruda.liriliri.io/img/screenshot.jpg)
-
-[中文](doc/README_CN.md)
+<img src="https://eruda.liriliri.io/screenshot.jpg" style="width:100%">
 
 ## Demo
 
-![Demo](https://eruda.liriliri.io/img/qrcode.png)
+![Demo](https://eruda.liriliri.io/qrcode.png)
 
-Browse it on your phone: [https://eruda.liriliri.io/](https://eruda.liriliri.io/)
-
-In order to try it for different sites, execute the script below on browser address bar.
-
-```javascript
-javascript:(function () { var script = document.createElement('script'); script.src="//cdn.jsdelivr.net/npm/eruda"; document.body.appendChild(script); script.onload = function () { eruda.init() } })();
-```
-
-## Features
-
-* [Console](doc/TOOL_API.md#console): Display JavaScript logs.
-* [Elements](doc/TOOL_API.md#elements): Check dom state.
-* [Network](doc/TOOL_API.md#network): Show requests status.
-* [Resource](/doc/TOOL_API.md#resources): Show localStorage, cookie information.
-* [Info](doc/TOOL_API.md#info): Show url, user agent info.
-* [Snippets](doc/TOOL_API.md#snippets): Include snippets used most often.
-* [Sources](doc/TOOL_API.md#sources): Html, js, css source viewer.
+Browse it on your phone: [eruda.liriliri.io](https://eruda.liriliri.io/)
 
 ## Install
 
 You can get it on npm.
 
 ```bash
-npm install eruda --save
+npm install eruda --save-dev
 ```
 
 Add this script to your page.
@@ -73,63 +55,31 @@ Add this script to your page.
 It's also available on [jsDelivr](http://www.jsdelivr.com/projects/eruda) and [cdnjs](https://cdnjs.com/libraries/eruda).
 
 ```html
-<script src="//cdn.jsdelivr.net/npm/eruda"></script>
+<script src="https://cdn.jsdelivr.net/npm/eruda"></script>
 <script>eruda.init();</script>
 ```
 
-The JavaScript file size is quite huge(about 100kb gzipped) and therefore not suitable to include in mobile pages. It's recommended to make sure eruda is loaded only when eruda is set to true on url(http://example.com/?eruda=true), for example:
-
-```javascript
-;(function () {
-    var src = '//cdn.jsdelivr.net/npm/eruda';
-    if (!/eruda=true/.test(window.location) && localStorage.getItem('active-eruda') != 'true') return;
-    document.write('<scr' + 'ipt src="' + src + '"></scr' + 'ipt>');
-    document.write('<scr' + 'ipt>eruda.init();</scr' + 'ipt>');
-})();
-```
-
-## Configuration
-
-When initialization, a configuration object can be passed in.
-
-* container: Container element. If not set, it will append an element directly
-under html root element.
-* tool: Choose which default tools you want, by default all will be added.
-
-For more information, please check the [documentation](doc/API.md).
-
-```javascript
-let el = document.createElement('div');
-document.body.appendChild(el);
-
-eruda.init({
-    container: el,
-    tool: ['console', 'elements']
-});
-```
-
-## Plugins
-
-* [eruda-fps](https://github.com/liriliri/eruda-fps): Display page fps info.
-* [eruda-features](https://github.com/liriliri/eruda-features): Browser feature detections.
-* [eruda-timing](https://github.com/liriliri/eruda-timing): Show performance and resource timing.
-* [eruda-memory](https://github.com/liriliri/eruda-memory): Display page memory info.
-* [eruda-code](https://github.com/liriliri/eruda-code): Run JavaScript code.
-* [eruda-benchmark](https://github.com/liriliri/eruda-benchmark): Run JavaScript benchmarks.
-* [eruda-geolocation](https://github.com/liriliri/eruda-geolocation): Test geolocation.
-* [eruda-dom](https://github.com/liriliri/eruda-dom): Navigate dom tree.
-* [eruda-orientation](https://github.com/liriliri/eruda-orientation): Test orientation api.
-* [eruda-touches](https://github.com/liriliri/eruda-touches): Visualize screen touches.
-
-If you want to create a plugin yourself, follow the guides [here](./doc/PLUGIN.md).
+For more detailed usage instructions, please read the documentation at [eruda.liriliri.io](https://eruda.liriliri.io/docs/)!
 
 ## Related Projects
 
+* [eruda-android](https://github.com/liriliri/eruda-android): Simple webview with eruda loaded automatically.
 * [chii](https://github.com/liriliri/chii): Remote debugging tool.
 * [chobitsu](https://github.com/liriliri/chobitsu): Chrome devtools protocol JavaScript implementation.
 * [licia](https://github.com/liriliri/licia): Utility library used by eruda.
+* [luna](https://github.com/liriliri/luna): UI components used by eruda.
+* [vivy](https://github.com/liriliri/vivy-docs): Icon image generation.
+
+## Third Party
+
+* [eruda-pixel](https://github.com/Faithree/eruda-pixel): UI pixel restoration tool.
 * [eruda-webpack-plugin](https://github.com/huruji/eruda-webpack-plugin): Eruda webpack plugin.
+* [eruda-vue-devtools](https://github.com/Zippowxk/vue-devtools-plugin): Eruda Vue-devtools plugin.
+
+## Backers
+
+<a rel="noreferrer noopener" href="https://opencollective.com/eruda" target="_blank"><img src="https://opencollective.com/eruda/backers.svg?width=890"></a>
 
 ## Contribution
 
-Read [Contributing Guide](.github/CONTRIBUTING.md) for development setup instructions.
+Read [Contributing Guide](https://eruda.liriliri.io/docs/contributing.html) for development setup instructions.

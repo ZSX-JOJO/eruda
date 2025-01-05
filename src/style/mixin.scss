@@ -17,6 +17,10 @@
   -webkit-overflow-scrolling: touch;
 }
 
+@mixin safe-area($prop, $value, $pos: 'bottom') {
+  #{$prop}: calc(#{$value} + env(safe-area-inset-#{$pos}));
+}
+
 @mixin breadcrumb {
   background: var(--darker-background);
   color: var(--primary);
@@ -29,6 +33,30 @@
   border-bottom: 1px solid var(--border);
 }
 
+@mixin control {
+  @include absolute(100%, 40px);
+  cursor: default;
+  font-size: 0;
+  background: var(--darker-background);
+  color: var(--primary);
+  line-height: 20px;
+  border-bottom: 1px solid var(--border);
+  [class^='eruda-icon-'],
+  [class*=' icon-'] {
+    display: inline-block;
+    padding: 10px;
+    font-size: $font-size-l;
+    position: absolute;
+    top: 0;
+    cursor: pointer;
+    transition: color $anim-duration;
+    &:active,
+    &.active {
+      color: var(--accent);
+    }
+  }
+}
+
 @mixin clear-float {
   &:after {
     content: '';
@@ -39,27 +67,34 @@
 
 @mixin right-btn {
   .btn {
-    display: flex;
     margin-left: 5px;
     float: right;
     color: var(--primary);
     width: 18px;
     height: 18px;
-    justify-content: center;
-    align-items: center;
     font-size: $font-size-l;
     cursor: pointer;
     transition: color $anim-duration;
-    &.search-keyword {
+    &.filter-text {
       width: auto;
       max-width: 80px;
       font-size: $font-size;
       overflow: hidden;
+      font-weight: normal;
       text-overflow: ellipsis;
       display: inline-block;
     }
     &:active {
       color: var(--accent);
+    }
+    &.btn-disabled {
+      color: inherit !important;
+      cursor: default !important;
+      pointer-events: none;
+      opacity: 0.5;
+      * {
+        pointer-events: none;
+      }
     }
   }
 }

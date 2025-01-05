@@ -1,8 +1,24 @@
 import Tool from '../DevTools/Tool'
-import { isEmpty, $, ms, trim, each, last } from '../lib/util'
-import { getFileName } from '../lib/fione'
+import $ from 'licia/$'
+import ms from 'licia/ms'
+import each from 'licia/each'
+import map from 'licia/map'
+import Detail from './Detail'
+import throttle from 'licia/throttle'
+import { getFileName, classPrefix as c } from '../lib/util'
 import evalCss from '../lib/evalCss'
-import chobitsu from 'chobitsu'
+import chobitsu from '../lib/chobitsu'
+import emitter from '../lib/emitter'
+import LunaDataGrid from 'luna-data-grid'
+import ResizeSensor from 'licia/ResizeSensor'
+import MediaQuery from 'licia/MediaQuery'
+import { getType } from './util'
+import copy from 'licia/copy'
+import extend from 'licia/extend'
+import trim from 'licia/trim'
+import isNull from 'licia/isNull'
+import LunaModal from 'luna-modal'
+import { curlStr } from './util'
 
 export default class Network extends Tool {
   constructor() {
@@ -12,26 +28,67 @@ export default class Network extends Tool {
 
     this.name = 'network'
     this._requests = {}
-    this._tpl = require('./Network.hbs')
-    this._detailTpl = require('./detail.hbs')
-    this._requestsTpl = require('./requests.hbs')
-    this._detailData = {}
+    this._selectedRequest = null
+    this._isRecording = true
   }
   init($el, container) {
     super.init($el)
 
     this._container = container
+    this._initTpl()
+    this._detail = new Detail(this._$detail, container)
+    this._splitMediaQuery = new MediaQuery('screen and (min-width: 680px)')
+    this._splitMode = this._splitMediaQuery.isMatch()
+    this._requestDataGrid = new LunaDataGrid(this._$requests.get(0), {
+      columns: [
+        {
+          id: 'name',
+          title: 'Name',
+          sortable: true,
+          weight: 30,
+        },
+        {
+          id: 'method',
+          title: 'Method',
+          sortable: true,
+          weight: 14,
+        },
+        {
+          id: 'status',
+          title: 'Status',
+          sortable: true,
+          weight: 14,
+        },
+        {
+          id: 'type',
+          title: 'Type',
+          sortable: true,
+          weight: 14,
+        },
+        {
+          id: 'size',
+          title: 'Size',
+          sortable: true,
+          weight: 14,
+        },
+        {
+          id: 'time',
+          title: 'Time',
+          sortable: true,
+          weight: 14,
+        },
+      ],
+    })
+    this._resizeSensor = new ResizeSensor($el.get(0))
     this._bindEvent()
-    this._appendTpl()
   }
   show() {
     super.show()
-
-    this._render()
+    this._updateDataGridHeight()
   }
   clear() {
     this._requests = {}
-    this._render()
+    this._requestDataGrid.clear()
   }
   requests() {
     const ret = []
@@ -40,8 +97,19 @@ export default class Network extends Tool {
     })
     return ret
   }
+  _updateDataGridHeight() {
+    const height = this._$el.offset().height - this._$control.offset().height
+    this._requestDataGrid.setOption({
+      minHeight: height,
+      maxHeight: height,
+    })
+  }
   _reqWillBeSent = (params) => {
-    this._requests[params.requestId] = {
+    if (!this._isRecording) {
+      return
+    }
+
+    const request = {
       name: getFileName(params.request.url),
       url: params.request.url,
       status: 'pending',
@@ -57,106 +125,211 @@ export default class Network extends Tool {
       reqHeaders: params.request.headers || {},
       resHeaders: {},
     }
+    let node
+    request.render = () => {
+      const data = {
+        name: request.name,
+        method: request.method,
+        status: request.status,
+        type: request.subType,
+        size: request.size,
+        time: request.displayTime,
+      }
+      if (node) {
+        node.data = data
+        node.render()
+      } else {
+        node = this._requestDataGrid.append(data, { selectable: true })
+        $(node.container).data('id', params.requestId)
+      }
+      if (request.hasErr) {
+        $(node.container).addClass(c('request-error'))
+      }
+    }
+    request.render()
+    this._requests[params.requestId] = request
   }
   _resReceivedExtraInfo = (params) => {
-    const target = this._requests[params.requestId]
-    if (!target) {
+    const request = this._requests[params.requestId]
+    if (!this._isRecording || !request) {
       return
     }
 
-    target.resHeaders = params.headers
+    request.resHeaders = params.headers
 
-    this._updateType(target)
-    this._render()
+    this._updateType(request)
+    request.render()
   }
-  _updateType(target) {
-    const contentType = target.resHeaders['content-type'] || ''
+  _updateType(request) {
+    const contentType = request.resHeaders['content-type'] || ''
     const { type, subType } = getType(contentType)
-    target.type = type
-    target.subType = subType
+    request.type = type
+    request.subType = subType
   }
   _resReceived = (params) => {
-    const target = this._requests[params.requestId]
-    if (!target) {
+    const request = this._requests[params.requestId]
+    if (!this._isRecording || !request) {
       return
     }
 
     const { response } = params
     const { status, headers } = response
-    target.status = status
+    request.status = status
     if (status < 200 || status >= 300) {
-      target.hasErr = true
+      request.hasErr = true
     }
     if (headers) {
-      target.resHeaders = headers
-      this._updateType(target)
+      request.resHeaders = headers
+      this._updateType(request)
     }
 
-    this._render()
+    request.render()
   }
   _loadingFinished = (params) => {
-    const target = this._requests[params.requestId]
-    if (!target) {
+    const request = this._requests[params.requestId]
+    if (!this._isRecording || !request) {
       return
     }
 
     const time = params.timestamp * 1000
-    target.time = time - target.startTime
-    target.displayTime = ms(target.time)
+    request.time = time - request.startTime
+    request.displayTime = ms(request.time)
 
-    target.size = params.encodedDataLength
-    target.done = true
-    target.resTxt = chobitsu.domain('Network').getResponseBody({
+    request.size = params.encodedDataLength
+    request.done = true
+    request.resTxt = chobitsu.domain('Network').getResponseBody({
       requestId: params.requestId,
     }).body
 
-    this._render()
+    request.render()
+  }
+  _loadingFailed = (params) => {
+    const request = this._requests[params.requestId]
+    if (!this._isRecording || !request) {
+      return
+    }
+
+    const time = params.timestamp * 1000
+    request.time = time - request.startTime
+    request.displayTime = ms(request.time)
+
+    request.hasErr = true
+    request.status = 0
+    request.done = true
+
+    request.render()
+  }
+  _copyCurl = () => {
+    const request = this._selectedRequest
+
+    copy(
+      curlStr({
+        requestMethod: request.method,
+        url() {
+          return request.url
+        },
+        requestFormData() {
+          return request.data
+        },
+        requestHeaders() {
+          const reqHeaders = request.reqHeaders || {}
+          extend(reqHeaders, {
+            'User-Agent': navigator.userAgent,
+            Referer: location.href,
+          })
+
+          return map(reqHeaders, (value, name) => {
+            return {
+              name,
+              value,
+            }
+          })
+        },
+      })
+    )
+
+    this._container.notify('Copied', { icon: 'success' })
+  }
+  _updateButtons() {
+    const $control = this._$control
+    const $showDetail = $control.find(c('.show-detail'))
+    const $copyCurl = $control.find(c('.copy-curl'))
+    const iconDisabled = c('icon-disabled')
+
+    $showDetail.addClass(iconDisabled)
+    $copyCurl.addClass(iconDisabled)
+
+    if (this._selectedRequest) {
+      $showDetail.rmClass(iconDisabled)
+      $copyCurl.rmClass(iconDisabled)
+    }
+  }
+  _toggleRecording = () => {
+    this._$control.find(c('.record')).toggleClass(c('recording'))
+    this._isRecording = !this._isRecording
+  }
+  _showDetail = () => {
+    if (this._selectedRequest) {
+      if (this._splitMode) {
+        this._$network.css('width', '50%')
+      }
+      this._detail.show(this._selectedRequest)
+    }
   }
   _bindEvent() {
-    const $el = this._$el
-    const container = this._container
+    const $control = this._$control
+    const $filterText = this._$filterText
+    const requestDataGrid = this._requestDataGrid
 
     const self = this
 
-    $el
-      .on('click', '.eruda-request', function () {
-        const id = $(this).data('id')
-        const data = self._requests[id]
+    $control
+      .on('click', c('.clear-request'), () => this.clear())
+      .on('click', c('.show-detail'), this._showDetail)
+      .on('click', c('.copy-curl'), this._copyCurl)
+      .on('click', c('.record'), this._toggleRecording)
+      .on('click', c('.filter'), () => {
+        LunaModal.prompt('Filter').then((filter) => {
+          if (isNull(filter)) return
 
-        if (!data.done) return
-
-        self._showDetail(data)
-      })
-      .on('click', '.eruda-clear-request', () => this.clear())
-      .on('click', '.eruda-back', () => this._hideDetail())
-      .on('click', '.eruda-http .eruda-response', () => {
-        const data = this._detailData
-        const resTxt = data.resTxt
-
-        switch (data.subType) {
-          case 'css':
-            return showSources('css', resTxt)
-          case 'html':
-            return showSources('html', resTxt)
-          case 'javascript':
-            return showSources('js', resTxt)
-          case 'json':
-            return showSources('object', resTxt)
-        }
-        switch (data.type) {
-          case 'image':
-            return showSources('img', data.url)
-        }
+          $filterText.text(filter)
+          requestDataGrid.setOption('filter', trim(filter))
+        })
       })
 
-    function showSources(type, data) {
-      const sources = container.get('sources')
-      if (!sources) return
+    requestDataGrid.on('select', (node) => {
+      const id = $(node.container).data('id')
+      const request = self._requests[id]
+      this._selectedRequest = request
+      this._updateButtons()
+      if (this._splitMode) {
+        this._showDetail()
+      }
+    })
 
-      sources.set(type, data)
+    requestDataGrid.on('deselect', () => {
+      this._selectedRequest = null
+      this._updateButtons()
+      this._detail.hide()
+    })
 
-      container.showTool('sources')
-    }
+    this._resizeSensor.addListener(
+      throttle(() => this._updateDataGridHeight(), 15)
+    )
+
+    this._splitMediaQuery.on('match', () => {
+      this._detail.hide()
+      this._splitMode = true
+    })
+    this._splitMediaQuery.on('unmatch', () => {
+      this._detail.hide()
+      this._splitMode = false
+    })
+    this._detail.on('hide', () => {
+      if (this._splitMode) {
+        this._$network.css('width', '100%')
+      }
+    })
 
     chobitsu.domain('Network').enable()
 
@@ -165,63 +338,48 @@ export default class Network extends Tool {
     network.on('responseReceivedExtraInfo', this._resReceivedExtraInfo)
     network.on('responseReceived', this._resReceived)
     network.on('loadingFinished', this._loadingFinished)
+    network.on('loadingFailed', this._loadingFailed)
+
+    emitter.on(emitter.SCALE, this._updateScale)
+  }
+  _updateScale = (scale) => {
+    this._splitMediaQuery.setQuery(`screen and (min-width: ${680 * scale}px)`)
   }
   destroy() {
     super.destroy()
 
+    this._resizeSensor.destroy()
     evalCss.remove(this._style)
+    this._splitMediaQuery.removeAllListeners()
 
     const network = chobitsu.domain('Network')
     network.off('requestWillBeSent', this._reqWillBeSent)
     network.off('responseReceivedExtraInfo', this._resReceivedExtraInfo)
     network.off('responseReceived', this._resReceived)
     network.off('loadingFinished', this._loadingFinished)
+
+    emitter.off(emitter.SCALE, this._updateScale)
   }
-  _showDetail(data) {
-    if (data.resTxt && trim(data.resTxt) === '') {
-      delete data.resTxt
-    }
-    if (isEmpty(data.resHeaders)) {
-      delete data.resHeaders
-    }
-    if (isEmpty(data.reqHeaders)) {
-      delete data.reqHeaders
-    }
-    this._$detail.html(this._detailTpl(data)).show()
-    this._detailData = data
-  }
-  _hideDetail() {
-    this._$detail.hide()
-  }
-  _appendTpl() {
+  _initTpl() {
     const $el = this._$el
-    $el.html(this._tpl())
-    this._$detail = $el.find('.eruda-detail')
-    this._$requests = $el.find('.eruda-requests')
-  }
-  _render() {
-    if (!this.active) return
-
-    const renderData = {}
-
-    if (!isEmpty(this._requests)) renderData.requests = this._requests
-
-    this._renderHtml(this._requestsTpl(renderData))
-  }
-  _renderHtml(html) {
-    if (html === this._lastHtml) return
-    this._lastHtml = html
-    this._$requests.html(html)
-  }
-}
-
-function getType(contentType) {
-  if (!contentType) return 'unknown'
-
-  const type = contentType.split(';')[0].split('/')
-
-  return {
-    type: type[0],
-    subType: last(type),
+    $el.html(
+      c(`<div class="network">
+        <div class="control">
+          <span class="icon-record record recording"></span>
+          <span class="icon-clear clear-request"></span>
+          <span class="icon-eye icon-disabled show-detail"></span>
+          <span class="icon-copy icon-disabled copy-curl"></span>
+          <span class="filter-text"></span>
+          <span class="icon-filter filter"></span>
+        </div>
+        <div class="requests"></div>
+      </div>
+      <div class="detail"></div>`)
+    )
+    this._$network = $el.find(c('.network'))
+    this._$detail = $el.find(c('.detail'))
+    this._$requests = $el.find(c('.requests'))
+    this._$control = $el.find(c('.control'))
+    this._$filterText = $el.find(c('.filter-text'))
   }
 }
